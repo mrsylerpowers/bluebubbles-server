@@ -533,6 +533,16 @@ export class SocketService {
                 if (params?.attachment && (!params.attachmentName || !params.attachmentGuid))
                     return response(cb, "error", createBadRequestResponse("No attachment name or GUID provided"));
 
+                if (Server().blueBubblesServerHelper.helper && !params.attachment) {
+                    try {
+                        await ActionHandler.privateSendMessage(params.guid, params.message, params.tempGuid);
+
+                        return response(cb, "message-sent", createSuccessResponse(null));
+                    } catch (ex) {
+                        return response(cb, "send-message-error", createServerErrorResponse(ex.message));
+                    }
+                }
+
                 try {
                     await ActionHandler.sendMessage(
                         tempGuid,

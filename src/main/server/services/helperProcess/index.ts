@@ -112,6 +112,24 @@ export class BlueBubblesHelperService {
         }
     }
 
+    sendMessage(chatGuid: string, message: string, tempGuid: string) {
+        if (!this.helper || !this.server) {
+            Server().log("Failed to send message, BlueBubblesHelper is not running!", "error");
+            return;
+        }
+        if (!chatGuid || !message) {
+            Server().log("Failed to send message. Invalid params!", "error");
+            return;
+        }
+        const data = {
+            event: "send-message",
+            data: `${chatGuid},${message},${tempGuid}`
+        };
+        if (!this.helper.write(`${JSON.stringify(data)}\n`)) {
+            Server().log("Failed to send message, an error occured writing to the socket", "error");
+        }
+    }
+
     setDisplayName(chatGuid: string, newName: string) {
         if (!this.helper || !this.server) {
             Server().log("Failed to send reaction, BlueBubblesHelper is not running!", "error");
@@ -177,6 +195,9 @@ export class BlueBubblesHelperService {
             } else if (data.event === "stopped-typing") {
                 Server().emitMessage("typing-indicator", { display: false, guid: data.guid });
                 Server().log(`Stopped typing! ${data.guid}`);
+            } else if (data.event === "message-match") {
+                Server().log(`Message match from private ${data.chatGuid}, ${data.tempGuid}, ${data.newGuid}`);
+                Server().log("Message guid updated");
             }
         });
     }

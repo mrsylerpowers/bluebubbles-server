@@ -128,6 +128,17 @@ export class ActionHandler {
     };
 
     /**
+     * Sends a text message through private api
+     *
+     * @param chatGuid the chat guid
+     * @param message the message body text
+     */
+    static privateSendMessage = async (chatGuid: string, message: string, tempGuid: string): Promise<void> => {
+        Server().log(`Executing Action: Send private message (Chat: ${chatGuid}; Message: ${message};)`, "debug");
+        Server().blueBubblesServerHelper.sendMessage(chatGuid, message, tempGuid);
+    };
+
+    /**
      * Renames a group chat via an AppleScript
      *
      * @param chatGuid The GUID for the chat
