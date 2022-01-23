@@ -10,6 +10,7 @@ import { Chat, getChatResponse } from "@server/databases/imessage/entity/Chat";
 import { Attachment, getAttachmentResponse } from "@server/databases/imessage/entity/Attachment";
 import { isMinBigSur, isMinCatalina, isMinHighSierra, isMinSierra, sanitizeStr } from "@server/helpers/utils";
 import { invisibleMediaChar } from "@server/services/httpService/constants";
+import { Server } from "@server/index";
 
 @Entity("message")
 export class Message {
@@ -505,6 +506,7 @@ export class Message {
 }
 
 export const getMessageResponse = async (tableData: Message): Promise<MessageResponse> => {
+    Server().log(`Starting to get message Response`, "debug");
     // Load attachments
     const attachments = [];
     for (const attachment of tableData?.attachments ?? []) {
@@ -517,6 +519,7 @@ export const getMessageResponse = async (tableData: Message): Promise<MessageRes
         const chatRes = await getChatResponse(chat);
         chats.push(chatRes);
     }
+    Server().log(`Finished getting attachments and chats`, "debug");
 
     return {
         originalROWID: tableData.ROWID,

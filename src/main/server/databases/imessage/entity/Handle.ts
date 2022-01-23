@@ -3,6 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, JoinColumn, JoinTabl
 import { Message, getMessageResponse } from "@server/databases/imessage/entity/Message";
 import { Chat, getChatResponse } from "@server/databases/imessage/entity/Chat";
 import { HandleResponse } from "@server/types";
+import { Server } from "@server/index";
 
 @Entity("handle")
 export class Handle {
@@ -35,6 +36,7 @@ export class Handle {
 }
 
 export const getHandleResponse = async (tableData: Handle): Promise<HandleResponse> => {
+    Server().log(`Starting to get handle response`, "debug");
     const messages = [];
     for (const msg of tableData?.messages ?? []) {
         const msgRes = await getMessageResponse(msg);
@@ -46,7 +48,7 @@ export const getHandleResponse = async (tableData: Handle): Promise<HandleRespon
         const chatRes = await getChatResponse(chat);
         chats.push(chatRes);
     }
-
+    Server().log(`Finished getting message response or/and chat response`, "debug");
     return {
         originalROWID: tableData.ROWID,
         messages,

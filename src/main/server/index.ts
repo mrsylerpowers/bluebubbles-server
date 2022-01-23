@@ -711,14 +711,17 @@ class BlueBubblesServer extends EventEmitter {
      * @param data Associated data with the notification (as a string)
      */
     async emitMessage(type: string, data: any, priority: "normal" | "high" = "normal", sendFcmMessage = true) {
+        Server().log(`Starting to emmit FCM Message with data | Do send fcm data? ${sendFcmMessage}`, "debug");
         this.httpService.socketServer.emit(type, data);
 
         // Send notification to devices
         if (sendFcmMessage && FCMService.getApp()) {
+            Server().log(`Got the fcm app`, "debug");
             const devices = await this.repo.devices().find();
             if (isEmpty(devices)) return;
 
             const notifData = JSON.stringify(data);
+            Server().log(`Sending data to fcm service`, "debug");
             await this.fcm.sendNotification(
                 devices.map(device => device.identifier),
                 { type, data: notifData },

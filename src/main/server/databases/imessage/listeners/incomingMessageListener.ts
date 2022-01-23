@@ -1,6 +1,7 @@
 import { MessageRepository } from "@server/databases/imessage";
 import { Message } from "@server/databases/imessage/entity/Message";
 import { EventCache } from "@server/eventCache";
+import { Server } from "@server/index";
 import { ChangeListener } from "./changeListener";
 import { getCacheName } from "../helpers/utils";
 
@@ -32,9 +33,10 @@ export class IncomingMessageListener extends ChangeListener {
             withChats: true,
             where: query
         });
+        Server().log(`Last processing time was: ${this.previousProcessingTime}`, "log");
 
         // Emit the new message
-        entries.forEach(async (entry: any) => {
+        entries.forEach((entry: Message) => {
             const cacheName = getCacheName(entry);
 
             // Skip over any that we've finished
@@ -42,12 +44,11 @@ export class IncomingMessageListener extends ChangeListener {
 
             // Add to cache
             this.cache.add(cacheName);
-            super.emit("new-entry", this.transformEntry(entry));
+            super.emit("new-entry", IncomingMessageListener.transformEntry(entry));
         });
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    transformEntry(entry: Message) {
-        return entry;
+    static transformEntry(messageEntry: Message): Message {
+        return messageEntry;
     }
 }

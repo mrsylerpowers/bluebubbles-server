@@ -10,6 +10,8 @@ export abstract class ChangeListener extends EventEmitter {
 
     pollFrequency: number;
 
+    previousProcessingTime: number;
+
     constructor({ cache = new EventCache(), pollFrequency = 1000 }: { cache?: EventCache; pollFrequency?: number }) {
         super();
 
@@ -17,6 +19,7 @@ export abstract class ChangeListener extends EventEmitter {
         this.stopped = false;
         this.pollFrequency = pollFrequency;
         this.lastCheck = new Date();
+        this.previousProcessingTime = pollFrequency;
     }
 
     stop() {
@@ -65,6 +68,7 @@ export abstract class ChangeListener extends EventEmitter {
         // If the time it took to do the checking is less than 1 second, find the difference
         const after = new Date();
         const processTime = after.getTime() - beforeCheck.getTime();
+        this.previousProcessingTime = processTime;
         let waitTime = this.pollFrequency;
 
         // If the processing time took less than the poll frequency, only wait out the remainder
