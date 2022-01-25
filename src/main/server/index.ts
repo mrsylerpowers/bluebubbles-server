@@ -1,6 +1,6 @@
 /* eslint-disable class-methods-use-this */
 // Dependency Imports
-import { app, BrowserWindow, nativeTheme, systemPreferences, dialog } from "electron";
+import { app, BrowserWindow, dialog, nativeTheme, systemPreferences } from "electron";
 import ServerLog from "electron-log";
 import * as process from "process";
 import { EventEmitter } from "events";
@@ -8,36 +8,35 @@ import * as macosVersion from "macos-version";
 
 // Configuration/Filesytem Imports
 import { FileSystem } from "@server/fileSystem";
-import { DEFAULT_POLL_FREQUENCY_MS } from "@server/constants";
 
 // Database Imports
-import { ServerRepository, ServerConfigChange } from "@server/databases/server";
+import { ServerConfigChange, ServerRepository } from "@server/databases/server";
 import { MessageRepository } from "@server/databases/imessage";
 import { ContactRepository } from "@server/databases/contacts";
 import {
+    GroupChangeListener,
     IncomingMessageListener,
-    OutgoingMessageListener,
-    GroupChangeListener
+    OutgoingMessageListener
 } from "@server/databases/imessage/listeners";
-import { Message, getMessageResponse } from "@server/databases/imessage/entity/Message";
+import { getMessageResponse, Message } from "@server/databases/imessage/entity/Message";
 import { ChangeListener } from "@server/databases/imessage/listeners/changeListener";
 
 // Service Imports
 import {
-    HttpService,
-    FCMService,
     AlertService,
     CaffeinateService,
-    NgrokService,
+    CloudflareService,
+    FCMService,
+    HttpService,
+    IPCService,
     LocalTunnelService,
     NetworkService,
+    NgrokService,
     QueueService,
-    IPCService,
-    UpdateService,
-    CloudflareService
+    UpdateService
 } from "@server/services";
 import { EventCache } from "@server/eventCache";
-import { runTerminalScript, openSystemPreferences } from "@server/api/v1/apple/scripts";
+import { openSystemPreferences, runTerminalScript } from "@server/api/v1/apple/scripts";
 
 import { ActionHandler } from "./api/v1/apple/actions";
 import { insertChatParticipants, isEmpty, isMinBigSur, isMinSierra, isNotEmpty } from "./helpers/utils";
@@ -770,21 +769,23 @@ class BlueBubblesServer extends EventEmitter {
             );
             return;
         }
+        // Retrieve the poll rate from server config
+        const poll_rate_frequency = Server().repo.getConfig("incoming_message_poll_rate") as number;
 
         // Create a listener to listen for new/updated messages
         const incomingMsgListener = new IncomingMessageListener(
             this.iMessageRepo,
             this.eventCache,
-            DEFAULT_POLL_FREQUENCY_MS
+            poll_rate_frequency
         );
         const outgoingMsgListener = new OutgoingMessageListener(
             this.iMessageRepo,
             this.eventCache,
-            DEFAULT_POLL_FREQUENCY_MS * 2
+            poll_rate_frequency * 2
         );
 
         // No real rhyme or reason to multiply this by 2. It's just not as much a priority
-        const groupEventListener = new GroupChangeListener(this.iMessageRepo, DEFAULT_POLL_FREQUENCY_MS * 2);
+        const groupEventListener = new GroupChangeListener(this.iMessageRepo, poll_rate_frequency * 2);
 
         // Add to listeners
         this.chatListeners = [outgoingMsgListener, incomingMsgListener, groupEventListener];

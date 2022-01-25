@@ -1,1 +1,1 @@
-export const DEFAULT_POLL_FREQUENCY_MS = 100;
+export const DEFAULT_POLL_FREQUENCY_MS = 500;

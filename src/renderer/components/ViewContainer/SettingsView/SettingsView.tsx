@@ -7,7 +7,7 @@
 import * as React from "react";
 import { ipcRenderer } from "electron";
 import Dropzone from "react-dropzone";
-import { isValidServerConfig, isValidClientConfig, invokeMain, checkFirebaseUrl } from "@renderer/helpers/utils";
+import { checkFirebaseUrl, invokeMain, isValidClientConfig, isValidServerConfig } from "@renderer/helpers/utils";
 import TopNav from "@renderer/components/TopNav/TopNav";
 import LeftStatusIndicator from "../DashboardView/LeftStatusIndicator/LeftStatusIndicator";
 
@@ -34,6 +34,7 @@ interface State {
     encryptComs: boolean;
     hideDockIcon: boolean;
     startViaTerminal: boolean;
+    incomingPollTime: string;
     checkForUpdates: boolean;
     autoInstallUpdates: boolean;
     enablePrivateApi: boolean;
@@ -68,7 +69,8 @@ class SettingsView extends React.Component<unknown, State> {
             checkForUpdates: true,
             autoInstallUpdates: false,
             enablePrivateApi: false,
-            use_custom_certificate: false
+            use_custom_certificate: false,
+            incomingPollTime: "500"
         };
 
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -99,6 +101,7 @@ class SettingsView extends React.Component<unknown, State> {
                 encryptComs: config.encrypt_coms,
                 hideDockIcon: config.hide_dock_icon,
                 startViaTerminal: config.start_via_terminal,
+                incomingPollTime: config.incoming_message_poll_rate,
                 checkForUpdates: config.check_for_updates,
                 autoInstallUpdates: config.auto_install_updates,
                 enablePrivateApi: config.enable_private_api,
@@ -273,6 +276,13 @@ class SettingsView extends React.Component<unknown, State> {
             console.log(target.checked);
             await ipcRenderer.invoke("set-config", {
                 use_custom_certificate: target.checked
+            });
+        }
+        if (id === "rangeIncomingMessagePoll") {
+            const target = e.target as HTMLInputElement;
+            this.setState({ incomingPollTime: target.value });
+            await ipcRenderer.invoke("set-config", {
+                incoming_message_poll_rate: target.value
             });
         }
     };
@@ -564,9 +574,9 @@ class SettingsView extends React.Component<unknown, State> {
                             <div>
                                 <h3 className="aSettingTitle">Keep MacOS Awake</h3>
                                 <p className="settingsHelp">
-                                    When enabled, you mac will not fall asleep due to inactivity or a screen screen saver. 
-                                    However, your computer lid&apos;s close action may override this. Make sure your computer does not
-                                    go to sleep when the lid is closed. 
+                                    When enabled, you mac will not fall asleep due to inactivity or a screen screen
+                                    saver. However, your computer lid&apos;s close action may override this. Make sure
+                                    your computer does not go to sleep when the lid is closed.
                                 </p>
                             </div>
                             <label className="form-switch">
@@ -663,6 +673,26 @@ class SettingsView extends React.Component<unknown, State> {
                                     onChange={e => this.handleInputChange(e)}
                                     type="checkbox"
                                     checked={this.state.startViaTerminal}
+                                />
+                                <i />
+                            </label>
+                        </div>
+                        <div className="aSliderDiv">
+                            <div>
+                                <h3 className="aSettingTitle">Incoming Message Poll Time</h3>
+                                <p className="settingsHelp">
+                                    How long to wait before checking if new message is received in milli seconds
+                                </p>
+                            </div>
+                            <label className="form-slider">
+                                <input
+                                    id="rangeIncomingMessagePoll"
+                                    type="range"
+                                    min="1"
+                                    max="1000"
+                                    value={this.state.incomingPollTime}
+                                    onChange={e => this.handleInputChange(e)}
+                                    step="1"
                                 />
                                 <i />
                             </label>

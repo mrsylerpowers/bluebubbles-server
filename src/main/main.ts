@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { app, BrowserWindow, Tray, Menu, nativeTheme } from "electron";
+import { app, BrowserWindow, Menu, nativeTheme, Tray } from "electron";
 import * as process from "process";
 import * as path from "path";
 import * as url from "url";
@@ -277,6 +277,7 @@ Available Commands:
                             -> hide_dock_icon: boolean
                             -> last_fcm_restart: number
                             -> start_via_terminal: boolean
+                            -> incoming_message_poll_rate: number
     - show:             Show the current configuration for an item -> \`show <config item>\`
 \n[===============================================================================]`;
 
