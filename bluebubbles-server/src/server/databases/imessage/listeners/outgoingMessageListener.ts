@@ -44,7 +44,7 @@ export class OutgoingMessageListener extends ChangeListener {
         await this.emitOutgoingMessages(afterOffsetDate);
 
         // Third, check for updated messages
-        let beforeOffsetDate = new Date(before.getTime() + (after.getTime() - before.getTime()) - 15000);
+        let beforeOffsetDate = new Date(after.getTime() - this.pollFrequency - 15000);
 
         await this.emitUpdatedMessages(beforeOffsetDate);
     }
