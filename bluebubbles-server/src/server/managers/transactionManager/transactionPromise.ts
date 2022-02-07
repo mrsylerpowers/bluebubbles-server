@@ -54,7 +54,7 @@ export class TransactionPromise {
             if (this.isResolved) return;
 
             // This will trigger our hook handlers, created in the constructor
-            this.reject("Transaction timeout");
+            this.reject(`${type} Transaction timeout`);
         }, 30000 * 2 * 2);
     }
 

@@ -385,6 +385,7 @@ export class ActionHandler {
     };
 
     static startOrStopTypingInChat = async (chatGuid: string, isTyping: boolean): Promise<void> => {
+        Server().log(`${chatGuid}, ${isTyping} Getting pravate api config for typing`)
         const enablePrivateApi = Server().repo.getConfig("enable_private_api") as boolean;
         if (!enablePrivateApi) {
             Server().log("Private API disabled! Not executing typing status change...");
@@ -411,6 +412,7 @@ export class ActionHandler {
     };
 
     static updateTypingStatus = async (chatGuid: string): Promise<void> => {
+        Server().log("Getting server config");
         const enablePrivateApi = Server().repo.getConfig("enable_private_api") as boolean;
         if (!enablePrivateApi) {
             Server().log("Private API disabled! Not executing update typing status...");

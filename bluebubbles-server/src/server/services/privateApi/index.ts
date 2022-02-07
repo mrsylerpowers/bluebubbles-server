@@ -371,7 +371,11 @@ export class BlueBubblesHelperService {
                 const idx = this.transactionManager.findIndex(data.transactionId);
                 if (idx >= 0) {
                     this.transactionManager.promises[idx].resolve(data.identifier, data?.data);
+                }else {
+                    Server().log(`Transaction not found in transaction manager ${data}`);
                 }
+            }else{
+                Server().log(`Data can't be read properly but is json ${data} `);
             }
         });
     }
