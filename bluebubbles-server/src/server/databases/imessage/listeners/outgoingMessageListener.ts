@@ -35,15 +35,18 @@ export class OutgoingMessageListener extends ChangeListener {
      * 6. Emit messages that have errored out
      *
      * @param after
+     * @param before The time right before get entries run
      */
     async getEntries(after: Date, before: Date): Promise<void> {
         // Second, emit the outgoing messages (lookback 15 seconds to make up for the "Apple" delay)
-        let offsetDate = new Date(after.getTime() - 15000);
+        let afterOffsetDate = new Date(after.getTime() - 15000);
 
-        await this.emitOutgoingMessages(offsetDate);
+        await this.emitOutgoingMessages(afterOffsetDate);
 
         // Third, check for updated messages
-        await this.emitUpdatedMessages(offsetDate);
+        let beforeOffsetDate = new Date(before.getTime() + (after.getTime() - before.getTime()) - 15000);
+
+        await this.emitUpdatedMessages(beforeOffsetDate);
     }
 
     async emitOutgoingMessages(after: Date) {
@@ -223,5 +226,6 @@ export class OutgoingMessageListener extends ChangeListener {
                 // Not need, not even included in the incoming message listener
             }
         }
+
     }
 }
