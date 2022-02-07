@@ -935,6 +935,7 @@ class BlueBubblesServer extends EventEmitter {
          * delivered date or read date have changed since the last time we checked the database.
          */
         outgoingMsgListener.on("updated-entry", async (item: Message) => {
+            Server().log("Starting the updated entry function");
             const newMessage = await insertChatParticipants(item);
 
             // ATTENTION: If "from" is null, it means you sent the message from a group chat
