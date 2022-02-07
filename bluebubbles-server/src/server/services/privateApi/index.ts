@@ -375,7 +375,7 @@ export class BlueBubblesHelperService {
                     Server().log(`Transaction not found in transaction manager ${data}`);
                 }
             }else{
-                Server().log(`Data can't be read properly but is json ${data} `);
+                Server().log(`Data can't be read properly but is json ${JSON.stringify(data)} `);
             }
         });
     }
