@@ -826,10 +826,12 @@ class BlueBubblesServer extends EventEmitter {
         // Insert chat & participants
         const newMessage = await insertChatParticipants(message);
         this.log(`Message match found for text, [${newMessage.contentString()}]`);
+        this.log(`Sending this message to client through fcm ${JSON.stringify(message)}`)
 
         // Convert to a response JSON
         const resp = await getMessageResponse(newMessage);
         resp.tempGuid = tempGuid;
+        this.log(`With this response  ${JSON.stringify(resp)}`);
 
         // We are emitting this as a new message, the only difference being the included tempGuid
         await this.emitMessage("new-message", resp);
