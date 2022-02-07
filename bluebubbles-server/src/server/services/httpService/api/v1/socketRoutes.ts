@@ -1105,7 +1105,8 @@ export class SocketRoutes {
                 try {
                     await ActionHandler.updateTypingStatus(params.chatGuid);
                     return response(cb, "update-typing-status-sent", createSuccessResponse(null));
-                } catch {
+                } catch (e ) {
+                    Server().log(e);
                     return response(
                         cb,
                         "update-typing-status-error",
