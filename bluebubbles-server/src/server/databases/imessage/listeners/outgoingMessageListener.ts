@@ -197,6 +197,7 @@ export class OutgoingMessageListener extends ChangeListener {
         // Emit the new message
         for (const entry of entries) {
             // Compile so it's unique based on dates as well as ROWID
+            Server().log(`Just updated a item ${JSON.stringify(entry)} ${getCacheName(entry)}`)
             const cacheName = `updated-${getCacheName(entry)}`;
 
             // Skip over any that we've finished

@@ -316,7 +316,7 @@ export class BlueBubblesHelperService {
 
     async getTypingStatus(chatGuid: string): Promise<TransactionResult> {
         if (!chatGuid) {
-            throw new Error("Failed to retreive typing status, no chatGuid specified!");
+            throw new Error("Failed to retrieve typing status, no chatGuid specified!");
         }
 
         return this.writeData("check-typing-status", { chatGuid });
