@@ -149,7 +149,11 @@ export class FCMService {
             const responses: admin.messaging.MessagingDevicesResponse[] = [];
             Server().log(`Sending FCM notification (Priority: ${priority}) to ${devices.length} device(s)`, "debug");
             for (const device of devices) {
+                const beforeTime = new Date().getTime()
                 const res = await FCMService.getApp().messaging().sendToDevice(device, msg, options);
+                const afterTime = new Date().getTime()
+                Server().log(`Server took to process fcm message  ${afterTime - beforeTime }ms`)
+
                 if (res.failureCount > 0) {
                     Server().log(
                         `Failed to send notification to device "${device}" ${res.failureCount} times!`,
