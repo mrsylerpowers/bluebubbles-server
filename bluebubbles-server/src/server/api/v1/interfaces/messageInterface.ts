@@ -58,14 +58,11 @@ export class MessageInterface {
         Server().log(`Adding await for chat: "${chatGuid}"; text: ${awaiter.text}`);
         Server().messageManager.add(awaiter);
 
-        // Try to send the iMessage
-        let sentMessage = null;
         if (method === "apple-script") {
             // Attempt to send the message
             await ActionHandler.sendMessageHandler(chatGuid, message ?? "", null);
-            sentMessage = await awaiter.promise;
         } else if (method === "private-api") {
-            sentMessage = await MessageInterface.sendMessagePrivateApi(
+            await MessageInterface.sendMessagePrivateApi(
                 chatGuid,
                 message,
                 subject,
@@ -76,7 +73,7 @@ export class MessageInterface {
             throw new Error(`Invalid send method: ${method}`);
         }
 
-        return sentMessage;
+        return await awaiter.promise;
     }
 
     /**

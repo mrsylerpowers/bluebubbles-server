@@ -47,7 +47,7 @@ export class QueueService {
                             item.data.attachmentName,
                             item.data.attachmentGuid
                         );
-                        Server().httpService.sendCache.remove(item?.data?.attachmentGuid);
+                        Server().httpService.sendCache.remove(item.data.attachmentGuid);
                     } catch (ex: any) {
                         // Re-throw the error after removing from cache
                         Server().httpService.sendCache.remove(item?.data?.attachmentGuid);
