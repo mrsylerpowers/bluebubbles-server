@@ -159,7 +159,7 @@ export class OutgoingMessageListener extends ChangeListener {
             this.cache.add(cacheName);
 
             // Reject the corresponding promise
-            const idx = Server().messageManager.findIndex(entry);
+            const idx = Server().messageManager.findIndex(entry, true);
             if (idx >= 0) {
                 // After the MessageMatchEmit event reaches client, then emmit message-send-error to fcm
                 await Server().messageManager.promises[idx].reject(entry);
@@ -198,7 +198,7 @@ export class OutgoingMessageListener extends ChangeListener {
             this.cache.add(cacheName);
 
             // Resolve the promise
-            const idx = Server().messageManager.findIndex(entry);
+            const idx = Server().messageManager.findIndex(entry, true);
             if (idx >= 0) {
                 // After the MessageMatchEmit event reaches client, then emmit updated-entry to fcm
                 await Server().messageManager.promises[idx].resolve(entry);
