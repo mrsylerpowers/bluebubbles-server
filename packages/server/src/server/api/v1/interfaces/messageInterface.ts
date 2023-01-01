@@ -58,6 +58,16 @@ export class MessageInterface {
         if (!chatGuid) throw new Error("No chat GUID provided");
 
         Server().log(`Sending message "${message}" to ${chatGuid}`, "debug");
+        Server().log( ` ${chatGuid},
+            ${message}
+            ${method},
+            ${attributedBody} ,
+            ${subject} ,
+            ${effectId} ,
+            ${selectedMessageGuid} ,
+            ${fileTransferGUIDs} ,
+            ${tempGuid} ,
+            ${partIndex} `, "debug");
 
         // We need offsets here due to iMessage's save times being a bit off for some reason
         const now = new Date(new Date().getTime() - 10000).getTime(); // With 10 second offset
