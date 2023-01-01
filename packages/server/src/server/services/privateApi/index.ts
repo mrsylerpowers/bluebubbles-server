@@ -435,6 +435,7 @@ export class BlueBubblesHelperService {
             throw new Error("Unable To register File Transfer. " +
                 "Ensure `filePath` is in \"Library/Messages\". Invalid params!");
         }
+        Server().log(`File Path; ${filePath}, Effect GUID ${effectId}, ChatGUID: ${chatGuid}`, "debug");
         const request = new TransactionPromise(TransactionType.ATTACHMENT);
         return this.writeData(
             "send-attachment",
