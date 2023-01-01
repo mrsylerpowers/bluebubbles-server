@@ -132,7 +132,13 @@ export class MessageInterface {
         const newPath = FileSystem.copyAttachment(attachmentPath, attachmentName);
 
         Server().log(`Sending attachment "${attachmentName}" to ${chatGuid}`, "debug");
-
+        Server().log( ` ${chatGuid},
+            ${attachmentPath}
+            ${method},
+            ${newPath} ,
+    
+            ${effectId} ,
+           `, "debug");
         // Make sure messages is open
         await FileSystem.startMessages();
 
