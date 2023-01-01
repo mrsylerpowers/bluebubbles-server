@@ -127,9 +127,13 @@ export class MessageInterface {
         effectId = null,
     }: SendAttachmentParams): Promise<Message> {
         if (!chatGuid) throw new Error("No chat GUID provided");
-
-        // Copy the attachment to a more permanent storage
-        const newPath = FileSystem.copyAttachment(attachmentPath, attachmentName);
+        let newPath: string;
+        if (method === "apple-script") {
+            // Copy the attachment to a more permanent storage
+             newPath = FileSystem.copyAttachment(attachmentPath, attachmentName);
+        }else {
+            newPath = FileSystem.copyAttachmentToLibrary(attachmentPath,attachmentName);
+        }
 
         Server().log(`Sending attachment "${attachmentName}" to ${chatGuid}`, "debug");
         Server().log( ` ${chatGuid},

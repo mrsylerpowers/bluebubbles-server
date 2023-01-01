@@ -187,6 +187,27 @@ export class FileSystem {
         return newPath;
     }
 
+    /**
+     * Saves an attachment
+     *
+     * @param name Name for the attachment
+     * @param buffer The attachment bytes (buffer)
+     */
+    static copyAttachmentToLibrary(originalPath: string, name: string): string {
+        const newPath: string = path.join(FileSystem.messagesAttachmentsDir, name);
+
+            if (!fs.existsSync(FileSystem.messagesAttachmentsDir))
+                fs.mkdirSync(FileSystem.messagesAttachmentsDir);
+
+
+
+        if (newPath !== originalPath) {
+            fs.copyFileSync(originalPath, newPath);
+        }
+
+        return newPath;
+    }
+
     static async cachedAttachmentCount() {
         let count = 0;
         const files = [FileSystem.attachmentsDir, FileSystem.attachmentCacheDir, FileSystem.messagesAttachmentsDir];
