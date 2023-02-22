@@ -1103,160 +1103,172 @@ class BlueBubblesServer extends EventEmitter {
         const pollInterval = (this.repo.getConfig("db_poll_interval") as number) ?? 1000;
 
         // Create a listener to listen for new/updated messages
-        const incomingMsgListener = new IncomingMessageListener(this.iMessageRepo, this.eventCache, pollInterval);
-        const outgoingMsgListener = new OutgoingMessageListener(this.iMessageRepo, this.eventCache, pollInterval * 1.5);
+        // const incomingMsgListener = new IncomingMessageListener(this.iMessageRepo, this.eventCache, pollInterval);
+        // const outgoingMsgListener =
+        // new OutgoingMessageListener(this.iMessageRepo, this.eventCache, pollInterval * 1.5);
         const papiMsgListener = new PAPIMessageUpdateListener(this.eventCache, this.iMessageRepo);
         // No real rhyme or reason to multiply this by 2. It's just not as much a priority
         const groupEventListener = new GroupChangeListener(this.iMessageRepo, pollInterval * 2);
 
         // Add to listeners
-        this.chatListeners = [outgoingMsgListener, incomingMsgListener, groupEventListener, papiMsgListener];
+        this.chatListeners = [groupEventListener, papiMsgListener];
 
         /**
          * Message listener for my messages only. We need this because messages from ourselves
          * need to be fully sent before forwarding to any clients. If we emit a notification
          * before the message is sent, it will cause a duplicate.
          */
-        outgoingMsgListener.on("new-entry", async (item: Message) => {
-            const newMessage = await insertChatParticipants(item);
-            this.log(`New Message from You, ${newMessage.contentString()}`);
+        papiMsgListener.on("new-entry", async (messageDirection: string, item: Message) => {
+            if (messageDirection === "outgoing-message") {
+                const newMessage = await insertChatParticipants(item);
+                this.log(`New Message from You, ${newMessage.contentString()}`);
 
-            // Manually send the message to the socket so we can serialize it with
-            // all the extra data
-            this.httpService.socketServer.emit(
-                NEW_MESSAGE,
-                await MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        parseAttributedBody: true,
-                        parseMessageSummary: true,
-                        parsePayloadData: true,
-                        loadChatParticipants: false,
-                        includeChats: true
-                    }
-                })
-            );
+                // Manually send the message to the socket so we can serialize it with
+                // all the extra data
+                this.httpService.socketServer.emit(
+                    NEW_MESSAGE,
+                    await MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            parseAttributedBody: true,
+                            parseMessageSummary: true,
+                            parsePayloadData: true,
+                            loadChatParticipants: false,
+                            includeChats: true
+                        }
+                    })
+                );
 
-            // Emit it to the FCM devices, but not socket
-            await this.emitMessage(
-                NEW_MESSAGE,
-                await MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        enforceMaxSize: true
-                    },
-                    isForNotification: true
-                }),
-                "normal",
-                true,
-                false
-            );
+                // Emit it to the FCM devices, but not socket
+                await this.emitMessage(
+                    NEW_MESSAGE,
+                    await MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            enforceMaxSize: true
+                        },
+                        isForNotification: true
+                    }),
+                    "normal",
+                    true,
+                    false
+                );
+            }
         });
 
         /**
          * Message listener checking for updated messages. This means either the message's
          * delivered date or read date have changed since the last time we checked the database.
          */
-        outgoingMsgListener.on("updated-entry", async (item: Message) => {
-            const newMessage = await insertChatParticipants(item);
+        papiMsgListener.on("updated-entry", async (messageDirection: string, item: Message) => {
+            if (messageDirection === "outgoing-message") {
+                const newMessage = await insertChatParticipants(item);
 
-            // ATTENTION: If "from" is null, it means you sent the message from a group chat
-            // Check the isFromMe key prior to checking the "from" key
-            const from = newMessage.isFromMe ? "You" : newMessage.handle?.id;
-            const time =
-                newMessage.dateDelivered ?? newMessage.dateRead ?? newMessage.dateEdited ?? newMessage.dateRetracted;
-            const updateType = newMessage.dateRetracted
-                ? "Text Unsent"
-                : newMessage.dateEdited
-                ? "Text Edited"
-                : newMessage.dateRead
-                ? "Text Read"
-                : "Text Delivered";
+                // ATTENTION: If "from" is null, it means you sent the message from a group chat
+                // Check the isFromMe key prior to checking the "from" key
+                const from = newMessage.isFromMe ? "You" : newMessage.handle?.id;
+                const time =
+                    newMessage.dateDelivered ??
+                    newMessage.dateRead ??
+                    newMessage.dateEdited ??
+                    newMessage.dateRetracted;
+                const updateType = newMessage.dateRetracted
+                    ? "Text Unsent"
+                    : newMessage.dateEdited
+                    ? "Text Edited"
+                    : newMessage.dateRead
+                    ? "Text Read"
+                    : "Text Delivered";
 
-            // Husky pre-commit validator was complaining, so I created vars
-            const content = newMessage.contentString();
-            const localeTime = time?.toLocaleString();
-            this.log(`Updated message from [${from}]: [${content}] - [${updateType} -> ${localeTime}]`);
+                // Husky pre-commit validator was complaining, so I created vars
+                const content = newMessage.contentString();
+                const localeTime = time?.toLocaleString();
+                this.log(`Updated message from [${from}]: [${content}] - [${updateType} -> ${localeTime}]`);
 
-            // Manually send the message to the socket so we can serialize it with
-            // all the extra data
-            this.httpService.socketServer.emit(
-                MESSAGE_UPDATED,
-                await MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        parseAttributedBody: true,
-                        parseMessageSummary: true,
-                        parsePayloadData: true,
-                        loadChatParticipants: false,
-                        includeChats: true
-                    }
-                })
-            );
+                // Manually send the message to the socket so we can serialize it with
+                // all the extra data
+                this.httpService.socketServer.emit(
+                    MESSAGE_UPDATED,
+                    await MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            parseAttributedBody: true,
+                            parseMessageSummary: true,
+                            parsePayloadData: true,
+                            loadChatParticipants: false,
+                            includeChats: true
+                        }
+                    })
+                );
 
-            // Emit it to the FCM devices only
-            // Since this is a message update, we do not need to include the participants or chats
-            await this.emitMessage(
-                MESSAGE_UPDATED,
-                MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        loadChatParticipants: false,
-                        includeChats: false
-                    },
-                    isForNotification: true
-                }),
-                "normal",
-                true,
-                false
-            );
+                // Emit it to the FCM devices only
+                // Since this is a message update, we do not need to include the participants or chats
+                await this.emitMessage(
+                    MESSAGE_UPDATED,
+                    MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            loadChatParticipants: false,
+                            includeChats: false
+                        },
+                        isForNotification: true
+                    }),
+                    "normal",
+                    true,
+                    false
+                );
+            }
         });
 
         /**
          * Message listener for messages that have errored out
          */
-        outgoingMsgListener.on("message-send-error", async (item: Message) => {
-            await this.emitMessageError(item);
+        papiMsgListener.on("message-send-error", async (messageDirection: string, item: Message) => {
+            if (messageDirection === "outgoing-message") {
+                await this.emitMessageError(item);
+            }
         });
 
         /**
          * Message listener for new messages not from yourself. See 'myMsgListener' comment
          * for why we separate them out into two separate listeners.
          */
-        incomingMsgListener.on("new-entry", async (item: Message) => {
-            const newMessage = await insertChatParticipants(item);
-            this.log(`New message from [${newMessage.handle?.id}]: [${newMessage.contentString()}]`);
+        papiMsgListener.on("new-entry", async (messageDirection: string, item: Message) => {
+            if (messageDirection === "incoming-message") {
+                const newMessage = await insertChatParticipants(item);
+                this.log(`New message from [${newMessage.handle?.id}]: [${newMessage.contentString()}]`);
 
-            // Manually send the message to the socket so we can serialize it with
-            // all the extra data
-            this.httpService.socketServer.emit(
-                NEW_MESSAGE,
-                await MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        parseAttributedBody: true,
-                        parseMessageSummary: true,
-                        parsePayloadData: true,
-                        loadChatParticipants: false,
-                        includeChats: true
-                    }
-                })
-            );
+                // Manually send the message to the socket so we can serialize it with
+                // all the extra data
+                this.httpService.socketServer.emit(
+                    NEW_MESSAGE,
+                    await MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            parseAttributedBody: true,
+                            parseMessageSummary: true,
+                            parsePayloadData: true,
+                            loadChatParticipants: false,
+                            includeChats: true
+                        }
+                    })
+                );
 
-            // Emit it to the FCM devices only
-            await this.emitMessage(
-                NEW_MESSAGE,
-                await MessageSerializer.serialize({
-                    message: newMessage,
-                    config: {
-                        enforceMaxSize: true
-                    },
-                    isForNotification: true
-                }),
-                "high",
-                true,
-                false
-            );
+                // Emit it to the FCM devices only
+                await this.emitMessage(
+                    NEW_MESSAGE,
+                    await MessageSerializer.serialize({
+                        message: newMessage,
+                        config: {
+                            enforceMaxSize: true
+                        },
+                        isForNotification: true
+                    }),
+                    "high",
+                    true,
+                    false
+                );
+            }
         });
 
         groupEventListener.on("name-change", async (item: Message) => {
@@ -1378,8 +1390,7 @@ class BlueBubblesServer extends EventEmitter {
             );
         });
 
-        outgoingMsgListener.on("error", (error: Error) => this.log(error.message, "error"));
-        incomingMsgListener.on("error", (error: Error) => this.log(error.message, "error"));
+        papiMsgListener.on("error", (error: Error) => this.log(error.message, "error"));
         groupEventListener.on("error", (error: Error) => this.log(error.message, "error"));
     }
 

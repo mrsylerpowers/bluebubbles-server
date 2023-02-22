@@ -3,6 +3,7 @@ import { EventCache } from "@server/eventCache";
 import { Message } from "@server/databases/imessage/entity/Message";
 import { Server } from "@server";
 import { MessageRepository } from "@server/databases/imessage";
+import { isNotEmpty } from "@server/helpers/utils";
 
 type MessageState = {
     dateCreated: number;
@@ -24,6 +25,7 @@ export class PAPIMessageUpdateListener extends EventEmitter {
     stopped: boolean;
 
     repo: MessageRepository;
+    private notSent: string[];
 
     constructor(cache = new EventCache(), repo: MessageRepository) {
         super();
@@ -115,15 +117,95 @@ export class PAPIMessageUpdateListener extends EventEmitter {
         return entry;
     }
 
-    async onReceiveMessageUpdate(messageGUID: any): Promise<void> {
+    async onReceiveMessageUpdate(messageGUID: string, isSent: boolean, isFromMe: boolean): Promise<void> {
         Server().log("MESSAGE UPDATE OBJECT RECEIVED");
         Server().log(messageGUID);
+
+        if (isFromMe) {
+            await this.handleOutgoingMessage(messageGUID, isFromMe, isSent);
+            return this.handleOutgoingMessageUpdate(messageGUID, isFromMe, isSent);
+        } else {
+            const newMessage = await this.repo.getMessage(messageGUID, true);
+            const event = this.processMessageEvent(newMessage);
+            if (!event) return;
+
+            // Emit the event
+            super.emit(event, "incoming-message", this.transformEntry(newMessage));
+        }
+    }
+
+    private async handleOutgoingMessage(messageGUID: string, isFromMe: boolean, isSent: boolean) {
         const newMessage = await this.repo.getMessage(messageGUID, true);
-        Server().log(newMessage);
-        const event = this.processMessageEvent(newMessage);
+        const newSent = isSent ? newMessage : null;
+        const newUnsent = !isSent ? newMessage : null;
+
+        if (newUnsent) {
+            Server().log(`Detected ${newUnsent.guid} unsent outgoing message(s)`, "debug");
+        }
+        let unsentIds: string = newUnsent.guid;
+        for (const i of this.notSent) {
+            if (unsentIds !== i) unsentIds = i;
+        }
+        let lookbackMessage: Message;
+        if (isNotEmpty(unsentIds)) {
+            lookbackMessage = await this.repo.getMessage(unsentIds, true);
+        }
+        if (isNotEmpty(lookbackMessage)) {
+            Server().log(`Detected ${lookbackMessage.guid} sent (previously unsent) message(s)`, "debug");
+        }
+
+        const lookbackSent = lookbackMessage.isSent && (lookbackMessage?.error ?? 0) === 0 ? lookbackMessage : null;
+        const lookbackErrored = (lookbackMessage?.error ?? 0) > 0 ? lookbackMessage : null;
+        const lookbackUnsent = !lookbackMessage.isSent && (lookbackMessage?.error ?? 0) === 0 ? lookbackMessage : null;
+
+        this.notSent = [lookbackUnsent.guid];
+
+        const toEmit = [];
+        if (newSent) toEmit.push(newSent);
+        if (lookbackSent) toEmit.push(lookbackSent);
+
+        for (const entry of toEmit) {
+            const event = this.processMessageEvent(entry);
+            if (!event) return;
+
+            // Resolve the promise for sent messages from a client
+            Server().messageManager.resolve(entry);
+
+            // Emit it as normal entry
+            super.emit(event, "outgoing-message", entry);
+        }
+        for (const entry of [lookbackErrored]) {
+            const event = this.processMessageEvent(entry);
+            if (!event) return;
+
+            // Reject the corresponding promise.
+            // This will emit a message send error
+            const success = await Server().messageManager.reject("message-send-error", entry);
+            Server().log(
+                `Errored Msg -> ${entry.guid} -> ${entry.contentString()} -> ${success} (Code: ${entry.error})`,
+                "debug"
+            );
+
+            // Emit it as normal error
+            if (!success) {
+                Server().log(
+                    `Message Manager Match Failed -> Promises: ${Server().messageManager.promises.length}`,
+                    "debug"
+                );
+                super.emit("message-send-error", "outgoing-message", entry);
+            }
+        }
+    }
+
+    private async handleOutgoingMessageUpdate(messageGUID: string, isFromMe: boolean, isSent: boolean) {
+        const entry = await this.repo.getMessage(messageGUID, true);
+        const event = this.processMessageEvent(entry);
         if (!event) return;
 
-        // Emit the event
-        super.emit(event, this.transformEntry(newMessage));
+        // Resolve the promise
+        Server().messageManager.resolve(entry);
+
+        // Emit it as a normal update
+        super.emit(event, entry);
     }
 }
