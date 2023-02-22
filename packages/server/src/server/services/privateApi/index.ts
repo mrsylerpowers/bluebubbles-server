@@ -20,6 +20,7 @@ import * as net from "net";
 import { ValidRemoveTapback } from "../../types";
 import { MAX_PORT, MIN_PORT } from "./constants";
 import { TYPING_INDICATOR } from "@server/events";
+import { PAPIMessageUpdateListener } from "@server/databases/imessage/listeners/PAPIMessageUpdateListener";
 
 type BundleStatus = {
     success: boolean;
@@ -421,9 +422,9 @@ export class BlueBubblesHelperService {
         selectedMessageGuid = null,
         partIndex = 0
     }: {
-        chatGuid: string,
-        filePath: string,
-        isAudioMessage?: boolean,
+        chatGuid: string;
+        filePath: string;
+        isAudioMessage?: boolean;
         attributedBody?: Record<string, any> | null;
         subject?: string;
         effectId?: string;
@@ -565,6 +566,10 @@ export class BlueBubblesHelperService {
                         Server().log("Private API Helper connected!");
                     } else if (data.event === "started-typing" || data.event === "stopped-typing") {
                         this.handleTypingIndicator(data.event, data.guid);
+                    } else if (data.event === "message-update") {
+                        Server()
+                            .chatListeners.find((listener: any) => listener instanceof PAPIMessageUpdateListener)
+                            ?.onReceiveMessageUpdate(data.message, data.guid);
                     }
                 }
             }

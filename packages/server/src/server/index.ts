@@ -70,6 +70,7 @@ import {
     PARTICIPANT_LEFT,
     PARTICIPANT_REMOVED
 } from "./events";
+import { PAPIMessageUpdateListener } from "@server/databases/imessage/listeners/PAPIMessageUpdateListener";
 
 const findProcess = require("find-process");
 
@@ -143,7 +144,7 @@ class BlueBubblesServer extends EventEmitter {
 
     actionHandler: ActionHandler;
 
-    chatListeners: MessageChangeListener[];
+    chatListeners: any[];
 
     eventCache: EventCache;
 
@@ -1104,12 +1105,12 @@ class BlueBubblesServer extends EventEmitter {
         // Create a listener to listen for new/updated messages
         const incomingMsgListener = new IncomingMessageListener(this.iMessageRepo, this.eventCache, pollInterval);
         const outgoingMsgListener = new OutgoingMessageListener(this.iMessageRepo, this.eventCache, pollInterval * 1.5);
-
+        const papiMsgListener = new PAPIMessageUpdateListener(this.eventCache);
         // No real rhyme or reason to multiply this by 2. It's just not as much a priority
         const groupEventListener = new GroupChangeListener(this.iMessageRepo, pollInterval * 2);
 
         // Add to listeners
-        this.chatListeners = [outgoingMsgListener, incomingMsgListener, groupEventListener];
+        this.chatListeners = [outgoingMsgListener, incomingMsgListener, groupEventListener, papiMsgListener];
 
         /**
          * Message listener for my messages only. We need this because messages from ourselves
