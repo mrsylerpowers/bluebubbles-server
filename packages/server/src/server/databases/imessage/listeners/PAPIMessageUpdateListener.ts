@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { EventCache } from "@server/eventCache";
 import { Message } from "@server/databases/imessage/entity/Message";
 import { Server } from "@server";
+import { MessageRepository } from "@server/databases/imessage";
 
 type MessageState = {
     dateCreated: number;
@@ -22,13 +23,16 @@ export class PAPIMessageUpdateListener extends EventEmitter {
 
     stopped: boolean;
 
-    constructor(cache = new EventCache()) {
+    repo: MessageRepository;
+
+    constructor(cache = new EventCache(), repo: MessageRepository) {
         super();
 
         this.cache = cache;
         this.cacheState = {};
         this.stopped = false;
         this.lastCheck = new Date();
+        this.repo = repo;
     }
 
     stop() {
@@ -106,9 +110,20 @@ export class PAPIMessageUpdateListener extends EventEmitter {
         this.cache.purge();
         this.lastCheck = new Date();
     }
+    // eslint-disable-next-line class-methods-use-this
+    transformEntry(entry: Message) {
+        return entry;
+    }
 
-    onReceiveMessageUpdate(eventData: any, guid: string): void {
+    async onReceiveMessageUpdate(messageGUID: any): Promise<void> {
         Server().log("MESSAGE UPDATE OBJECT RECEIVED");
-        Server().log(eventData);
+        Server().log(messageGUID);
+        const newMessage = await this.repo.getMessage(messageGUID, true);
+        Server().log(newMessage);
+        const event = this.processMessageEvent(newMessage);
+        if (!event) return;
+
+        // Emit the event
+        super.emit(event, this.transformEntry(newMessage));
     }
 }

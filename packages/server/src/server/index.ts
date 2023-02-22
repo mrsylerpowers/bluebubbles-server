@@ -1105,7 +1105,7 @@ class BlueBubblesServer extends EventEmitter {
         // Create a listener to listen for new/updated messages
         const incomingMsgListener = new IncomingMessageListener(this.iMessageRepo, this.eventCache, pollInterval);
         const outgoingMsgListener = new OutgoingMessageListener(this.iMessageRepo, this.eventCache, pollInterval * 1.5);
-        const papiMsgListener = new PAPIMessageUpdateListener(this.eventCache);
+        const papiMsgListener = new PAPIMessageUpdateListener(this.eventCache, this.iMessageRepo);
         // No real rhyme or reason to multiply this by 2. It's just not as much a priority
         const groupEventListener = new GroupChangeListener(this.iMessageRepo, pollInterval * 2);
 

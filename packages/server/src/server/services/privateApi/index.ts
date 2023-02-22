@@ -569,7 +569,7 @@ export class BlueBubblesHelperService {
                     } else if (data.event === "message-update") {
                         Server()
                             .chatListeners.find((listener: any) => listener instanceof PAPIMessageUpdateListener)
-                            ?.onReceiveMessageUpdate(data.message, data.guid);
+                            ?.onReceiveMessageUpdate(data.guid);
                     }
                 }
             }
