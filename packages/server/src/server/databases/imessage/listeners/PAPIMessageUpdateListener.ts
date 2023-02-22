@@ -199,6 +199,25 @@ export class PAPIMessageUpdateListener extends EventEmitter {
 
     private async handleOutgoingMessageUpdate(messageGUID: string, isFromMe: boolean, isSent: boolean) {
         const entry = await this.repo.getMessage(messageGUID, true);
+        if ((entry?.error ?? 0) > 0) {
+            // Reject the corresponding promise.
+            // This will emit a message send error
+            const success = await Server().messageManager.reject("message-send-error", entry);
+            Server().log(
+                `Errored Msg -> ${entry.guid} -> ${entry.contentString()} -> ${success} (Code: ${entry.error})`,
+                "debug"
+            );
+
+            // Emit it as normal error
+            if (!success) {
+                Server().log(
+                    `Message Manager Match Failed -> Promises: ${Server().messageManager.promises.length}`,
+                    "debug"
+                );
+                super.emit("message-send-error", "outgoing-message", entry);
+            }
+            return;
+        }
         const event = this.processMessageEvent(entry);
         if (!event) return;
 

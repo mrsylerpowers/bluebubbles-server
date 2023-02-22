@@ -1224,9 +1224,7 @@ class BlueBubblesServer extends EventEmitter {
          * Message listener for messages that have errored out
          */
         papiMsgListener.on("message-send-error", async (messageDirection: string, item: Message) => {
-            if (messageDirection === "outgoing-message") {
-                await this.emitMessageError(item);
-            }
+            await this.emitMessageError(item);
         });
 
         /**
