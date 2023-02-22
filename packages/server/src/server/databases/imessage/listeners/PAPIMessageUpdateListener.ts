@@ -63,6 +63,7 @@ export class PAPIMessageUpdateListener extends EventEmitter {
 
     getMessageEvent(message: Message): string | null {
         // If the GUID doesn't exist, it's a new message
+        if (!message) return null;
         const guid = message.guid;
         if (!this.cache.find(guid)) return "new-entry";
 
